@@ -42,10 +42,6 @@ At the time of writing (15/July/2022), this is not detected by Crowdstrike in ag
 
 Template & Makefile based on repo from [@realoriginal](https://github.com/realoriginal/beacon-object-file)
 
-## Change Log
-[@ukstufus] Automatically obtain and create temporary files for ease of use (and a little stealth), using beacon output
-formatting for tidier output, minor debugging changes.
-
 ## Reading material for BOF
 
 [CS Beacon Object Files](https://www.cobaltstrike.com/help-beacon-object-files)
@@ -70,3 +66,5 @@ https://github.com/realoriginal/bof-NetworkServiceEscalate
 
 ## Author
 [@leftp](https://github.com/leftp)
+[@ukstufus](https://github.com/stufus) Automatically obtain and create temporary files for ease of use (and a little stealth), using beacon output
+formatting for tidier output, minor debugging changes.
