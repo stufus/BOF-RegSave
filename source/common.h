@@ -5,6 +5,7 @@
 //
 #include <ntstatus.h>
 #include <windows.h>
+#include <fileapi.h>
 
 //
 // Internal "Beacon" API header
@@ -20,4 +21,3 @@ WINBASEAPI BOOL WINAPI ADVAPI32$LookupPrivilegeValueA (LPCSTR, LPCSTR, PLUID);
 WINBASEAPI BOOL WINAPI ADVAPI32$AdjustTokenPrivileges(HANDLE, BOOL, PTOKEN_PRIVILEGES, DWORD, PTOKEN_PRIVILEGES, PDWORD);
 WINBASEAPI HANDLE WINAPI KERNEL32$GetCurrentProcess (void);
 WINBASEAPI BOOL WINAPI KERNEL32$CloseHandle (HANDLE);
-WINBASEAPI LPSTR WINAPI SHLWAPI$PathCombineA(LPSTR,LPCSTR,LPCSTR);

